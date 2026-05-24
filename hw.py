@@ -6,6 +6,44 @@ import argparse
 from ffmpeg_cmd import build_ffmpeg_command
 
 
+# Map CLI vendor names to (module_name, accel_method) pairs
+_GPU_VENDOR_MAP = {
+    "nvidia": ("nvidia", "NVENC"),
+    "amd": ("amd", "VAAPI"),
+    "intel": ("intel", "QSV"),
+}
+
+# Cache imported vendor modules
+_vendor_modules = {}
+
+
+def _get_vendor_config(gpu: str, codec: str):
+    """Resolve the correct accel method, dri_device, preset, and quality for a given GPU vendor and codec."""
+    gpu_lower = gpu.lower()
+    if gpu_lower not in _GPU_VENDOR_MAP:
+        raise ValueError(f"Unknown GPU vendor '{gpu}'. Choose from: {', '.join(_GPU_VENDOR_MAP)}")
+
+    module_name, accel_method = _GPU_VENDOR_MAP[gpu_lower]
+
+    if module_name not in _vendor_modules:
+        _vendor_modules[module_name] = __import__(module_name)
+
+    mod = _vendor_modules[module_name]
+    codec_upper = codec.upper()
+
+    # Each vendor module has its own resolve_*_config with slightly different signatures
+    if module_name == "nvidia":
+        config = mod.resolve_nvidia_config(codec_upper)
+    elif module_name == "amd":
+        config = mod.resolve_amd_config(accel_method, codec_upper)
+    elif module_name == "intel":
+        config = mod.resolve_intel_config(accel_method, codec_upper)
+    else:
+        raise ValueError(f"No config resolver for vendor '{module_name}'")
+
+    return accel_method, config
+
+
 def run_cli_transcoding(input_folder, output_folder, gpu, codec):
     """Run transcoding in CLI mode without GUI"""
     print(f"Starting CLI transcoding...")
@@ -27,6 +65,22 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
         except OSError as e:
             print(f"Error: Cannot create output folder '{output_folder}': {e}")
             sys.exit(1)
+
+    # Resolve GPU vendor configuration
+    try:
+        accel_method, vendor_config = _get_vendor_config(gpu, codec)
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error resolving GPU config: {e}")
+        sys.exit(1)
+
+    dri_device = vendor_config.get("dri_device")
+    compression_preset = vendor_config.get("preset", "6")
+    resolved_quality = vendor_config.get("quality", 23)
+
+    print(f"Accel method: {accel_method}, DRI device: {dri_device}, Preset: {compression_preset}, Quality: {resolved_quality}")
 
     # Get video files from input folder
     video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm']
@@ -54,11 +108,11 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
             cmd = build_ffmpeg_command(
                 input_file=video_file,
                 output_file=output_file,
-                gpu=gpu,
-                codec=codec,
-                preset=6,  # Default preset
-                quality_target=23,  # Default quality
-                max_concurrency=4  # Default concurrency
+                codec_mode=codec.upper(),
+                accel_method=accel_method,
+                dri_device=dri_device,
+                compression_preset=str(compression_preset),
+                resolved_quality=int(resolved_quality),
             )
 
             print(f"Command: {' '.join(cmd)}")
@@ -97,8 +151,8 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description='Video transcoding tool - CLI mode')
         parser.add_argument('input_folder', help='Input folder containing video files')
         parser.add_argument('output_folder', help='Output folder for transcoded files')
-        parser.add_argument('gpu', choices=['amd', 'nvidia', 'intel'], help='GPU type')
-        parser.add_argument('codec', choices=['av1', 'hevc', 'h264'], help='Video codec')
+        parser.add_argument('gpu', choices=['amd', 'nvidia', 'intel', "AMD", 'NVIDIA', 'INTEL', 'Intel'], help='GPU type')
+        parser.add_argument('codec', choices=['av1', 'hevc', 'h264', 'AV1', 'HEVC', 'H264'], help='Video codec')
 
         args = parser.parse_args()
 
