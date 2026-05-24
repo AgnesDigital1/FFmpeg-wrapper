@@ -88,7 +88,7 @@ def run_gui():
 
 if __name__ == "__main__":
     if not sys.platform.startswith("linux"):
-        print("Fatal Error: I assume you run on Linux. Remove this check if you want to bother with likely dead code.")
+        print("Fatal Error: I assume you run on Linux. Remove this check if you want to bother yourself.")
         sys.exit(1)
 
     # Check if running in CLI mode
