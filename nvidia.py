@@ -1,3 +1,30 @@
+"""
+NVIDIA GPU hardware configuration and probing.
+
+AV1_CAPABLE is determined at import time by running a real FFmpeg dummy
+transcode test. Set OVERRIDE_AV1_CAPABLE to True/False to skip probing.
+"""
+
+import probe
+
+# ---------------------------------------------------------------------------
+# AV1 capability detection
+# ---------------------------------------------------------------------------
+
+OVERRIDE_AV1_CAPABLE = None  # Set to True or False to override auto-detection
+
+if OVERRIDE_AV1_CAPABLE is not None:
+    AV1_CAPABLE = OVERRIDE_AV1_CAPABLE
+else:
+    AV1_CAPABLE = probe.check_vendor_av1_capable("NVIDIA")
+
+# Cached GPU availability (probed once at import time)
+GPU_AVAILABLE = probe.check_vendor_gpu_available("NVIDIA")
+
+# ---------------------------------------------------------------------------
+# Quality constants
+# ---------------------------------------------------------------------------
+
 QUALITY_PROPRIETARY_AV1 = 26
 QUALITY_HEVC = 25
 QUALITY_H264 = 21
@@ -12,16 +39,19 @@ NVIDIA_HARDWARE_REGISTRY = {
             "AV1": {"codec": "av1_nvenc", "quality": QUALITY_PROPRIETARY_AV1, "max_jobs": 2},
             "HEVC": {"codec": "hevc_nvenc", "quality": QUALITY_HEVC, "max_jobs": 4},
             "H264": {"codec": "h264_nvenc", "quality": QUALITY_H264, "max_jobs": 4},
-        }
-    }
+        },
+    },
 }
 
 
+# ---------------------------------------------------------------------------
+# Probe functions
+# ---------------------------------------------------------------------------
+
+
 def check_gpu_availability() -> bool:
-    """Stubbed NVIDIA GPU availability probe."""
-    msg = "[NVIDIA GPU Probe] Skipping actual hardware checks (Stub). Returning True."
-    print(msg)
-    return True
+    """Check if an NVIDIA GPU with working NVENC encoder is available."""
+    return probe.check_vendor_gpu_available("NVIDIA")
 
 
 def resolve_nvidia_config(codec_mode: str) -> dict:

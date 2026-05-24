@@ -24,12 +24,15 @@ class BatchVideoTranscoderApp:
         self.root.geometry("900x700")
         self.root.minsize(800, 600)
 
-        self.GPU_BRAND_VAR = tk.StringVar(value="AMD")
+        _detected_brands = self.get_available_gpu_brands()
+        _default_brand = _detected_brands[0] if _detected_brands else "AMD"
+
+        self.GPU_BRAND_VAR = tk.StringVar(value=_default_brand)
         self.CODEC_MODE_VAR = tk.StringVar(value="HEVC")
         self.SRC_DIR_VAR = tk.StringVar()
         self.PARENT_DST_DIR_VAR = tk.StringVar()
 
-        self.GPU_BRAND = "AMD"
+        self.GPU_BRAND = _default_brand
         self.CODEC_MODE = "HEVC"
         self.SRC_DIR = ""
         self.PARENT_DST_DIR = ""
@@ -106,6 +109,35 @@ class BatchVideoTranscoderApp:
         if self.GPU_BRAND == "AMD" and self.ACCEL_METHOD == "VAAPI" and self.CODEC_MODE == "AV1":
             return 0, 255
         return 0, 51
+
+    def get_available_codecs(self):
+        codecs = ["HEVC", "H264"]
+        if self.GPU_BRAND == "AMD" and amd.AV1_CAPABLE:
+            codecs.insert(0, "AV1")
+        elif self.GPU_BRAND == "NVIDIA" and nvidia.AV1_CAPABLE:
+            codecs.insert(0, "AV1")
+        elif self.GPU_BRAND == "Intel" and intel.AV1_CAPABLE:
+            codecs.insert(0, "AV1")
+        return codecs
+
+    def get_available_gpu_brands(self):
+        """Return list of GPU brands with detected hardware."""
+        brands = []
+        if amd.GPU_AVAILABLE:
+            brands.append("AMD")
+        if nvidia.GPU_AVAILABLE:
+            brands.append("NVIDIA")
+        if intel.GPU_AVAILABLE:
+            brands.append("Intel")
+        return brands
+
+    def update_codec_options(self):
+        available = self.get_available_codecs()
+        if hasattr(self, "cmb_codec"):
+            self.cmb_codec.config(values=available)
+        current = self.CODEC_MODE_VAR.get()
+        if current not in available:
+            self.CODEC_MODE_VAR.set(available[0])
 
     def get_available_accel_methods(self):
         if self.GPU_BRAND == "AMD":
@@ -238,6 +270,7 @@ class BatchVideoTranscoderApp:
         self.GPU_BRAND = self.GPU_BRAND_VAR.get()
         self.CODEC_MODE = self.CODEC_MODE_VAR.get()
 
+        self.update_codec_options()
         self.update_accel_options()
         self.ACCEL_METHOD = self.ACCEL_METHOD_VAR.get()
 
@@ -255,11 +288,6 @@ class BatchVideoTranscoderApp:
         elif self.GPU_BRAND == "Intel" and self.ACCEL_METHOD == "QSV":
             self.lbl_warning.config(
                 text="⚠️ Intel QSV is a stub. Requires non-free driver, onevpl-intel-gpu or drm-tip (for Arc).",
-                foreground="black"
-            )
-        elif self.GPU_BRAND != "AMD" or self.ACCEL_METHOD != "VAAPI":
-            self.lbl_warning.config(
-                text=f"⚠️ {self.GPU_BRAND} {self.ACCEL_METHOD} is a visual/logic stub only.",
                 foreground="black"
             )
         else:
@@ -652,7 +680,7 @@ class BatchVideoTranscoderApp:
         self.cmb_gpu = ttk.Combobox(
             pnl_hw,
             textvariable=self.GPU_BRAND_VAR,
-            values=["AMD", "NVIDIA", "Intel"],
+            values=self.get_available_gpu_brands(),
             state="readonly",
             width=15,
         )
@@ -662,7 +690,7 @@ class BatchVideoTranscoderApp:
         self.cmb_codec = ttk.Combobox(
             pnl_hw,
             textvariable=self.CODEC_MODE_VAR,
-            values=["AV1", "HEVC", "H264"],
+            values=["HEVC", "H264"],
             state="readonly",
             width=15,
         )
