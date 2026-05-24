@@ -63,8 +63,14 @@ def _verify_gpu_working(accel_method: str, codec: str, dri_device) -> bool:
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        if result.returncode != 0:
+            print(f"  [GPU verify] Dummy encode failed (rc={result.returncode}):")
+            for line in result.stderr.splitlines():
+                if "error" in line.lower() or "failed" in line.lower() or "cuda" in line.lower():
+                    print(f"    {line.strip()}")
         return result.returncode == 0
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+        print(f"  [GPU verify] Dummy encode error: {e}")
         return False
 
 
@@ -106,9 +112,9 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
 
     print(f"Accel method: {accel_method}, DRI device: {dri_device}, Preset: {compression_preset}, Quality: {resolved_quality}")
 
-    # Verify GPU is actually available and working
-    if not _verify_gpu_working(accel_method, vendor_config.get("codec"), dri_device):
-        print(f"Error: GPU encoder is not functional.")
+    # Verify GPU is actually available and working (unless --force)
+    if not args.force and not _verify_gpu_working(accel_method, vendor_config.get("codec"), dri_device):
+        print(f"Error: GPU encoder verification failed.")
         print(f"Run 'ffmpeg -encoders | grep {accel_method.lower()}' to check encoder availability.")
         if accel_method == "NVENC":
             print("For NVIDIA GPUs on headless servers, ensure:")
@@ -116,6 +122,8 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
             print("  - device nodes exist: ls /dev/nvidia*")
             print("  - nvidia-persistenced is running (recommended for headless)")
             print("  - If in a container, GPU must be passed through (--gpus all)")
+        print("")
+        print("To skip this check, use --force")
         sys.exit(1)
 
     # Get video files from input folder
@@ -200,6 +208,7 @@ if __name__ == "__main__":
         parser.add_argument('output_folder', help='Output folder for transcoded files')
         parser.add_argument('gpu', choices=['amd', 'nvidia', 'intel', "AMD", 'NVIDIA', 'INTEL', 'Intel'], help='GPU type')
         parser.add_argument('codec', choices=['av1', 'hevc', 'h264', 'AV1', 'HEVC', 'H264'], help='Video codec')
+        parser.add_argument('--force', action='store_true', help='Skip GPU verification check')
 
         args = parser.parse_args()
 
