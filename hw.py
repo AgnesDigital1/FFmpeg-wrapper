@@ -44,6 +44,30 @@ def _get_vendor_config(gpu: str, codec: str):
     return accel_method, config
 
 
+def _verify_gpu_working(accel_method: str, codec: str, dri_device) -> bool:
+    """Run a quick 1-frame dummy encode to verify the GPU encoder actually works."""
+    import subprocess
+
+    cmd = [
+        "ffmpeg",
+        "-f", "lavfi",
+        "-i", "testsrc=duration=1:size=320x240:rate=1",
+    ]
+
+    if accel_method == "VAAPI" and dri_device:
+        cmd += ["-vaapi_device", dri_device, "-filter:v", "format=nv12,hwupload"]
+    elif accel_method == "QSV" and dri_device:
+        cmd += ["-qsv_device", dri_device, "-filter:v", "format=nv12,hwupload"]
+
+    cmd += ["-c:v", codec, "-f", "null", "-"]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        return False
+
+
 def run_cli_transcoding(input_folder, output_folder, gpu, codec):
     """Run transcoding in CLI mode without GUI"""
     print(f"Starting CLI transcoding...")
@@ -81,6 +105,18 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
     resolved_quality = vendor_config.get("quality", 23)
 
     print(f"Accel method: {accel_method}, DRI device: {dri_device}, Preset: {compression_preset}, Quality: {resolved_quality}")
+
+    # Verify GPU is actually available and working
+    if not _verify_gpu_working(accel_method, vendor_config.get("codec"), dri_device):
+        print(f"Error: GPU encoder is not functional.")
+        print(f"Run 'ffmpeg -encoders | grep {accel_method.lower()}' to check encoder availability.")
+        if accel_method == "NVENC":
+            print("For NVIDIA GPUs on headless servers, ensure:")
+            print("  - nvidia kernel module is loaded: lsmod | grep nvidia")
+            print("  - device nodes exist: ls /dev/nvidia*")
+            print("  - nvidia-persistenced is running (recommended for headless)")
+            print("  - If in a container, GPU must be passed through (--gpus all)")
+        sys.exit(1)
 
     # Get video files from input folder
     video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm']
@@ -126,6 +162,16 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
                 print(f"✓ Successfully processed: {filename}")
             else:
                 print(f"✗ Error processing {filename}: {result.stderr}")
+                stderr_lower = result.stderr.lower()
+                if "cuda" in stderr_lower or "cuinit" in stderr_lower or "cuda_error" in stderr_lower:
+                    print("")
+                    print("  [CUDA / NVIDIA driver issue detected]")
+                    print("  On headless servers without a display:")
+                    print("    1. Ensure nvidia kernel module is loaded:  lsmod | grep nvidia")
+                    print("    2. Check device nodes exist:              ls /dev/nvidia*")
+                    print("    3. Start nvidia-persistenced:             nvidia-persistenced --verbose")
+                    print("    4. If in Docker, pass GPU through:         docker run --gpus all ...")
+                    print("    5. Check driver version matches:          nvidia-smi")
 
         except Exception as e:
             print(f"✗ Error building command for {filename}: {e}")
