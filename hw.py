@@ -113,6 +113,7 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
                 dri_device=dri_device,
                 compression_preset=str(compression_preset),
                 resolved_quality=int(resolved_quality),
+                codec=vendor_config.get("codec"),
             )
 
             print(f"Command: {' '.join(cmd)}")

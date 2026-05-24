@@ -537,6 +537,7 @@ class BatchVideoTranscoderApp:
 
             self.ui_msg_queue.put(("log", f"[Active] Running {CURRENT_FILE_INDEX}/{TOTAL_FILES}: '{filename}'"))
 
+            proc = None
             try:
                 with open(LOG_FILE, "w") as log_fp:
                     log_fp.write(f"FFmpeg Shell Construction Command:\n{' '.join(cmd)}\n\n")
@@ -570,9 +571,10 @@ class BatchVideoTranscoderApp:
                             pass
             except asyncio.CancelledError:
                 with self.pids_lock:
-                    if 'proc' in locals() and proc.returncode is None:
+                    if proc is not None and proc.returncode is None:
                         try:
                             proc.terminate()
+                            await proc.wait()
                         except Exception:
                             pass
                 q.task_done()
