@@ -3,7 +3,7 @@ import sys
 import os
 import argparse
 
-from ffmpeg_cmd import build_ffmpeg_command
+from ffmpeg_cmd import build_ffmpeg_command, build_ffmpeg_command_with_fallback
 
 
 # Map CLI vendor names to (module_name, accel_method) pairs
@@ -107,10 +107,11 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
         sys.exit(1)
 
     dri_device = vendor_config.get("dri_device")
+    hwaccel = vendor_config.get("hwaccel")
     compression_preset = vendor_config.get("preset", "6")
     resolved_quality = vendor_config.get("quality", 23)
 
-    print(f"Accel method: {accel_method}, DRI device: {dri_device}, Preset: {compression_preset}, Quality: {resolved_quality}")
+    print(f"Accel method: {accel_method}, HW accel: {hwaccel}, DRI device: {dri_device}, Preset: {compression_preset}, Quality: {resolved_quality}")
 
     # Verify GPU is actually available and working (unless --force)
     if not args.force and not _verify_gpu_working(accel_method, vendor_config.get("codec"), dri_device):
@@ -147,9 +148,9 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
 
         print(f"\nProcessing: {filename}")
 
-        # Build FFmpeg command
         try:
-            cmd = build_ffmpeg_command(
+            # Build both pipeline variants
+            hw_cmd, sw_cmd = build_ffmpeg_command_with_fallback(
                 input_file=video_file,
                 output_file=output_file,
                 codec_mode=codec.upper(),
@@ -158,16 +159,26 @@ def run_cli_transcoding(input_folder, output_folder, gpu, codec):
                 compression_preset=str(compression_preset),
                 resolved_quality=int(resolved_quality),
                 codec=vendor_config.get("codec"),
+                hwaccel=hwaccel,
             )
 
-            print(f"Command: {' '.join(cmd)}")
-
-            # Execute the command
+            # Try pipeline 1: hw decode → hw encode
+            print(f"  Trying HW decode pipeline...")
+            print(f"  Command: {' '.join(hw_cmd)}")
             import subprocess
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(hw_cmd, capture_output=True, text=True)
 
             if result.returncode == 0:
-                print(f"✓ Successfully processed: {filename}")
+                print(f"✓ Successfully processed (HW decode): {filename}")
+                continue
+
+            # Pipeline 1 failed — fall back to pipeline 2
+            print(f"  HW decode failed, falling back to SW decode + hwupload...")
+            print(f"  Command: {' '.join(sw_cmd)}")
+            result = subprocess.run(sw_cmd, capture_output=True, text=True)
+
+            if result.returncode == 0:
+                print(f"✓ Successfully processed (SW decode fallback): {filename}")
             else:
                 print(f"✗ Error processing {filename}: {result.stderr}")
                 stderr_lower = result.stderr.lower()

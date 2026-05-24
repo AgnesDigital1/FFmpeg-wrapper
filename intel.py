@@ -35,6 +35,7 @@ INTEL_ACCEL_METHODS = ["QSV", "VAAPI"]
 INTEL_HARDWARE_REGISTRY = {
     "QSV": {
         "dri_device": "/dev/dri/renderD128",
+        "hwaccel": "qsv",
         "preset": "1",
         "codecs": {
             "AV1": {"codec": "av1_qsv", "quality": QUALITY_PROPRIETARY_AV1, "max_jobs": 2},
@@ -44,6 +45,7 @@ INTEL_HARDWARE_REGISTRY = {
     },
     "VAAPI": {
         "dri_device": "/dev/dri/renderD128",
+        "hwaccel": "vaapi",
         "preset": "1",
         "codecs": {
             "AV1": {"codec": "av1_vaapi", "quality": QUALITY_VAAPI_AV1, "max_jobs": 2},
@@ -69,6 +71,7 @@ def resolve_intel_config(accel_method: str, codec_mode: str) -> dict:
     codec_info = method_info.get("codecs", {}).get(codec_mode, {})
     return {
         "dri_device": method_info.get("dri_device", "/dev/dri/renderD128"),
+        "hwaccel": method_info.get("hwaccel", "qsv"),
         "preset": method_info.get("preset", "default"),
         "quality": codec_info.get("quality", QUALITY_HEVC),
         "codec": codec_info.get("codec", "h264_vaapi"),

@@ -34,6 +34,7 @@ NVIDIA_ACCEL_METHODS = ["NVENC"]
 NVIDIA_HARDWARE_REGISTRY = {
     "NVENC": {
         "dri_device": None,
+        "hwaccel": "cuda",
         "preset": "p7",
         "codecs": {
             "AV1": {"codec": "av1_nvenc", "quality": QUALITY_PROPRIETARY_AV1, "max_jobs": 2},
@@ -59,6 +60,7 @@ def resolve_nvidia_config(codec_mode: str) -> dict:
     codec_info = method_info.get("codecs", {}).get(codec_mode, {})
     return {
         "dri_device": method_info.get("dri_device"),
+        "hwaccel": method_info.get("hwaccel", "cuda"),
         "preset": method_info.get("preset", "default"),
         "quality": codec_info.get("quality", QUALITY_HEVC),
         "codec": codec_info.get("codec", "h264_nvenc"),

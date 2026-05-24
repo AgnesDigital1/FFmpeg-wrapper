@@ -35,6 +35,7 @@ AMD_ACCEL_METHODS = ["AMF", "VAAPI"]
 AMD_HARDWARE_REGISTRY = {
     "VAAPI": {
         "dri_device": "/dev/dri/renderD128",
+        "hwaccel": "vaapi",
         "preset": "29",
         "codecs": {
             "AV1": {"codec": "av1_vaapi", "quality": QUALITY_VAAPI_AV1, "max_jobs": 2},
@@ -44,6 +45,7 @@ AMD_HARDWARE_REGISTRY = {
     },
     "AMF": {
         "dri_device": "/dev/dri/renderD128",
+        "hwaccel": "vaapi",
         "preset": "quality",
         "codecs": {
             "AV1": {"codec": "av1_amf", "quality": QUALITY_PROPRIETARY_AV1, "max_jobs": 2},
@@ -75,6 +77,7 @@ def resolve_amd_config(accel_method: str, codec_mode: str) -> dict:
     codec_info = method_info.get("codecs", {}).get(codec_mode, {})
     return {
         "dri_device": method_info.get("dri_device", "/dev/dri/renderD128"),
+        "hwaccel": method_info.get("hwaccel", "vaapi"),
         "preset": method_info.get("preset", "default"),
         "quality": codec_info.get("quality", QUALITY_HEVC),
         "codec": codec_info.get("codec", "h264_vaapi"),
