@@ -185,7 +185,7 @@ class BatchVideoTranscoderApp:
         if self.GPU_BRAND == "AMD":
             return "Preset range: 0-29\nBigger = Better"
         if self.GPU_BRAND == "NVIDIA":
-            return "Preset range: p1-p7\nBigger = Better"
+            return "Preset range: 1-7\nBigger = Better"
         if self.GPU_BRAND == "Intel":
             return "Preset range: 1-7\nSmaller = Better"
         return "Preset range: default"
