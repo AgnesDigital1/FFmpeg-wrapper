@@ -21,8 +21,8 @@ class BatchVideoTranscoderApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Modular Batch Video Transcoder")
-        self.root.geometry("900x700")
-        self.root.minsize(800, 600)
+        self.root.geometry("1200x850")
+        self.root.minsize(1000, 700)
 
         _detected_brands = self.get_available_gpu_brands()
         _default_brand = _detected_brands[0] if _detected_brands else "AMD"
@@ -48,7 +48,9 @@ class BatchVideoTranscoderApp:
         self.QUALITY_TARGET_VAR = tk.IntVar(value=self.RESOLVED_QUALITY)
         self.MAX_CONCURRENCY_VAR = tk.IntVar(value=self.MAX_JOBS)
         self.ACCEL_METHOD_VAR = tk.StringVar(value=self.ACCEL_METHOD)
+        self.OPUS_BITRATE_VAR = tk.IntVar(value=192)
 
+        self.OPUS_BITRATE = 192
         self._default_preset = self.COMPRESSION_PRESET
         self._default_quality = self.RESOLVED_QUALITY
         self._default_max_jobs = self.MAX_JOBS
@@ -229,6 +231,12 @@ class BatchVideoTranscoderApp:
         except (ValueError, TypeError):
             max_jobs = self._default_max_jobs
         self.MAX_JOBS = max(1, max_jobs)
+
+        try:
+            self.OPUS_BITRATE = max(32, min(int(self.OPUS_BITRATE_VAR.get()), 510))
+        except (ValueError, TypeError):
+            self.OPUS_BITRATE = 192
+        self.OPUS_BITRATE_VAR.set(self.OPUS_BITRATE)
 
     def resolve_hardware_config(self):
         if self.GPU_BRAND == "AMD":
@@ -444,6 +452,7 @@ class BatchVideoTranscoderApp:
                     self.FILE_QUEUE,
                     self.TOTAL_FILES,
                     self.LOG_DIR,
+                    self.OPUS_BITRATE,
                 )
             )
         except asyncio.CancelledError:
@@ -468,6 +477,7 @@ class BatchVideoTranscoderApp:
         FILE_QUEUE,
         TOTAL_FILES,
         LOG_DIR,
+        OPUS_BITRATE=192,
     ):
         q = asyncio.Queue()
         for idx, filepath in enumerate(FILE_QUEUE, start=1):
@@ -486,6 +496,7 @@ class BatchVideoTranscoderApp:
                     RESOLVED_QUALITY,
                     TOTAL_FILES,
                     LOG_DIR,
+                    OPUS_BITRATE,
                 )
             )
             for _ in range(num_workers)
@@ -504,6 +515,7 @@ class BatchVideoTranscoderApp:
         RESOLVED_QUALITY,
         TOTAL_FILES,
         LOG_DIR,
+        OPUS_BITRATE=192,
     ):
         while not q.empty():
             try:
@@ -533,6 +545,7 @@ class BatchVideoTranscoderApp:
                 dri_device=DRI_DEVICE,
                 compression_preset=COMPRESSION_PRESET,
                 resolved_quality=RESOLVED_QUALITY,
+                opus_bitrate=OPUS_BITRATE,
             )
 
             self.ui_msg_queue.put(("log", f"[Active] Running {CURRENT_FILE_INDEX}/{TOTAL_FILES}: '{filename}'"))
@@ -735,6 +748,16 @@ class BatchVideoTranscoderApp:
             width=10,
         )
         self.spin_quality.grid(row=1, column=3, sticky=tk.W, padx=5, pady=2)
+
+        ttk.Label(pnl_hw, text="Opus Bitrate (kbps):").grid(row=1, column=4, sticky=tk.W, pady=2, padx=(20, 0))
+        self.spin_opus_bitrate = tk.Spinbox(
+            pnl_hw,
+            from_=32,
+            to=510,
+            textvariable=self.OPUS_BITRATE_VAR,
+            width=10,
+        )
+        self.spin_opus_bitrate.grid(row=1, column=5, sticky=tk.W, padx=5, pady=2)
 
         self.lbl_preset_scale = ttk.Label(pnl_hw, text="", font=("Helvetica", 9))
         self.lbl_preset_scale.grid(row=2, column=0, columnspan=2, sticky=tk.W, pady=2)

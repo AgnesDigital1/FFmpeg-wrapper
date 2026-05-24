@@ -77,8 +77,8 @@ def build_video_quality_args(accel_method: str, codec_mode: str, resolved_qualit
     return ["-qp:v", str(resolved_quality), "-compression_level:v", compression_preset]
 
 
-def build_audio_args() -> List[str]:
-    return ["-c:a", "libopus", "-b:a", "192k", "-vbr", "on", "-ac", "2"]
+def build_audio_args(opus_bitrate: int = 192) -> List[str]:
+    return ["-c:a", "libopus", "-b:a", f"{opus_bitrate}k", "-vbr", "on", "-ac", "2"]
 
 
 def build_subtitle_args() -> List[str]:
@@ -111,6 +111,7 @@ def build_ffmpeg_command(
     codec: Optional[str] = None,
     hwaccel: Optional[str] = None,
     hw_decode: bool = False,
+    opus_bitrate: int = 192,
 ) -> List[str]:
     """
     Build an FFmpeg command.
@@ -147,7 +148,7 @@ def build_ffmpeg_command(
         *filter_args,
         *build_video_codec_args(video_codec),
         *build_video_quality_args(accel_method, codec_mode, resolved_quality, compression_preset),
-        *build_audio_args(),
+        *build_audio_args(opus_bitrate),
         *build_subtitle_args(),
         *build_global_args(),
         output_file,
@@ -164,6 +165,7 @@ def build_ffmpeg_command_with_fallback(
     resolved_quality: int,
     codec: Optional[str] = None,
     hwaccel: Optional[str] = None,
+    opus_bitrate: int = 192,
 ) -> Tuple[List[str], List[str]]:
     """
     Build both pipeline commands: (hw_decode_cmd, sw_decode_fallback_cmd).
@@ -173,10 +175,12 @@ def build_ffmpeg_command_with_fallback(
         input_file, output_file, codec_mode, accel_method,
         dri_device, compression_preset, resolved_quality,
         codec=codec, hwaccel=hwaccel, hw_decode=True,
+        opus_bitrate=opus_bitrate,
     )
     sw_cmd = build_ffmpeg_command(
         input_file, output_file, codec_mode, accel_method,
         dri_device, compression_preset, resolved_quality,
         codec=codec, hwaccel=None, hw_decode=False,
+        opus_bitrate=opus_bitrate,
     )
     return hw_cmd, sw_cmd
