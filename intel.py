@@ -7,9 +7,7 @@ transcode test. Set OVERRIDE_AV1_CAPABLE to True/False to skip probing.
 
 import probe
 
-# ---------------------------------------------------------------------------
 # AV1 capability detection
-# ---------------------------------------------------------------------------
 
 OVERRIDE_AV1_CAPABLE = None  # Set to True or False to override auto-detection
 
@@ -21,9 +19,7 @@ else:
 # Cached GPU availability (probed once at import time)
 GPU_AVAILABLE = probe.check_vendor_gpu_available("Intel")
 
-# ---------------------------------------------------------------------------
 # Quality constants
-# ---------------------------------------------------------------------------
 
 QUALITY_VAAPI_AV1 = 90
 QUALITY_PROPRIETARY_AV1 = 26
@@ -56,9 +52,9 @@ INTEL_HARDWARE_REGISTRY = {
 }
 
 
-# ---------------------------------------------------------------------------
+
 # Probe functions
-# ---------------------------------------------------------------------------
+
 
 
 def check_gpu_availability() -> bool:
