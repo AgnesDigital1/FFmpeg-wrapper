@@ -36,7 +36,7 @@ INTEL_HARDWARE_REGISTRY = {
         "codecs": {
             "AV1": {"codec": "av1_qsv", "quality": QUALITY_PROPRIETARY_AV1, "max_jobs": 2},
             "HEVC": {"codec": "hevc_qsv", "quality": QUALITY_HEVC, "max_jobs": 4},
-            "H264": {"codec": "h264_qsv", "quality": QUALITY_H264, "max_jobs": 4},
+            "H264": {"codec": "h264_qsv", "quality": QUALITY_H264, "max_jobs": 5},
         },
     },
     "VAAPI": {
@@ -46,7 +46,7 @@ INTEL_HARDWARE_REGISTRY = {
         "codecs": {
             "AV1": {"codec": "av1_vaapi", "quality": QUALITY_VAAPI_AV1, "max_jobs": 2},
             "HEVC": {"codec": "hevc_vaapi", "quality": QUALITY_HEVC, "max_jobs": 4},
-            "H264": {"codec": "h264_vaapi", "quality": QUALITY_H264, "max_jobs": 4},
+            "H264": {"codec": "h264_vaapi", "quality": QUALITY_H264, "max_jobs": 5},
         },
     },
 }

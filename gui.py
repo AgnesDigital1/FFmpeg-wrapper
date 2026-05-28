@@ -206,12 +206,7 @@ class BatchVideoTranscoderApp:
         if hasattr(self, "spin_quality"):
             self.spin_quality.config(from_=min_q, to=max_q)
         if hasattr(self, "lbl_quality_scale"):
-            if self.GPU_BRAND == "AMD" and self.ACCEL_METHOD == "VAAPI" and self.CODEC_MODE == "AV1":
-                self.lbl_quality_scale.config(text=f"Quality range: {min_q}-{max_q}\nBigger = Better")
-            elif self.GPU_BRAND == "NVIDIA":
-                self.lbl_quality_scale.config(text=f"Quality range: {min_q}-{max_q}\nBigger = Better")
-            else:
-                self.lbl_quality_scale.config(text=f"Quality range: {min_q}-{max_q}\nSmaller = Better")
+            self.lbl_quality_scale.config(text=f"Quality range: {min_q}-{max_q}\nSmaller = Better")
         if hasattr(self, "lbl_preset_scale"):
             self.lbl_preset_scale.config(text=self.get_preset_range_text())
 
@@ -264,6 +259,10 @@ class BatchVideoTranscoderApp:
             self.QUALITY_TARGET_VAR.set(config["quality"])
         if self.MAX_CONCURRENCY_VAR.get() == previous_default_max_jobs:
             self.MAX_CONCURRENCY_VAR.set(config["max_jobs"])
+
+        # Cap NVENC concurrency at 5
+        if self.GPU_BRAND == "NVIDIA" and config["max_jobs"] > 5:
+            config["max_jobs"] = 5
 
         self._default_preset = config["preset"]
         self._default_quality = config["quality"]
@@ -361,8 +360,9 @@ class BatchVideoTranscoderApp:
             messagebox.showerror("GPU Error", "Hardware check failed.")
             return
 
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        self.FINAL_DST_DIR = os.path.join(self.PARENT_DST_DIR, f"batch_transcode_{self.CODEC_MODE.lower()}_{timestamp}")
+        input_folder_name = os.path.basename(self.SRC_DIR.rstrip(os.sep))
+        date_str = time.strftime("%d%m%Y")
+        self.FINAL_DST_DIR = os.path.join(self.PARENT_DST_DIR, f"{input_folder_name}_{self.CODEC_MODE.lower()}_{date_str}")
 
         try:
             os.makedirs(self.FINAL_DST_DIR, exist_ok=True)
@@ -729,7 +729,7 @@ class BatchVideoTranscoderApp:
         self.spin_max_jobs = tk.Spinbox(
             pnl_hw,
             from_=1,
-            to=16,
+            to=8,
             textvariable=self.MAX_CONCURRENCY_VAR,
             width=10,
         )

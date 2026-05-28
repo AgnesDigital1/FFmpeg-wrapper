@@ -39,7 +39,7 @@ NVIDIA_HARDWARE_REGISTRY = {
         "codecs": {
             "AV1": {"codec": "av1_nvenc", "quality": QUALITY_PROPRIETARY_AV1, "max_jobs": 2},
             "HEVC": {"codec": "hevc_nvenc", "quality": QUALITY_HEVC, "max_jobs": 4},
-            "H264": {"codec": "h264_nvenc", "quality": QUALITY_H264, "max_jobs": 4},
+            "H264": {"codec": "h264_nvenc", "quality": QUALITY_H264, "max_jobs": 5},
         },
     },
 }
