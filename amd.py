@@ -38,9 +38,9 @@ AMD_HARDWARE_REGISTRY = {
         "hwaccel": "vaapi",
         "preset": "29",
         "codecs": {
-            "AV1": {"codec": "av1_vaapi", "quality": QUALITY_VAAPI_AV1, "max_jobs": 2},
-            "HEVC": {"codec": "hevc_vaapi", "quality": QUALITY_HEVC, "max_jobs": 4},
-            "H264": {"codec": "h264_vaapi", "quality": QUALITY_H264, "max_jobs": 5},
+            "AV1": {"codec": "av1_vaapi", "quality": QUALITY_VAAPI_AV1, "max_jobs": 1},
+            "HEVC": {"codec": "hevc_vaapi", "quality": QUALITY_HEVC, "max_jobs": 3},
+            "H264": {"codec": "h264_vaapi", "quality": QUALITY_H264, "max_jobs": 3},
         },
     },
     "AMF": {
@@ -48,9 +48,9 @@ AMD_HARDWARE_REGISTRY = {
         "hwaccel": "vaapi",
         "preset": "quality",
         "codecs": {
-            "AV1": {"codec": "av1_amf", "quality": QUALITY_PROPRIETARY_AV1, "max_jobs": 2},
-            "HEVC": {"codec": "hevc_amf", "quality": QUALITY_HEVC, "max_jobs": 4},
-            "H264": {"codec": "h264_amf", "quality": QUALITY_H264, "max_jobs": 5},
+            "AV1": {"codec": "av1_amf", "quality": QUALITY_PROPRIETARY_AV1, "max_jobs": 1},
+            "HEVC": {"codec": "hevc_amf", "quality": QUALITY_HEVC, "max_jobs": 3},
+            "H264": {"codec": "h264_amf", "quality": QUALITY_H264, "max_jobs": 3},
         },
     },
 }

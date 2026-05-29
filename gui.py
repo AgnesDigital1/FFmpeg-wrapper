@@ -260,9 +260,9 @@ class BatchVideoTranscoderApp:
         if self.MAX_CONCURRENCY_VAR.get() == previous_default_max_jobs:
             self.MAX_CONCURRENCY_VAR.set(config["max_jobs"])
 
-        # Cap NVENC concurrency at 5
+        # Cap NVENC concurrency at driver limit
         if self.GPU_BRAND == "NVIDIA" and config["max_jobs"] > 5:
-            config["max_jobs"] = 5
+            config["max_jobs"] = 8
 
         self._default_preset = config["preset"]
         self._default_quality = config["quality"]
@@ -480,7 +480,8 @@ class BatchVideoTranscoderApp:
         OPUS_BITRATE=192,
     ):
         q = asyncio.Queue()
-        for idx, filepath in enumerate(FILE_QUEUE, start=1):
+        sorted_queue = FILE_QUEUE if MAX_JOBS != 1 else sorted(FILE_QUEUE, key=lambda p: os.path.basename(p).lower())
+        for idx, filepath in enumerate(sorted_queue, start=1):
             await q.put((idx, filepath))
 
         num_workers = min(MAX_JOBS, len(FILE_QUEUE))
