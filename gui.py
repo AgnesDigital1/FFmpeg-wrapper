@@ -31,6 +31,7 @@ class BatchVideoTranscoderApp:
         self.CODEC_MODE_VAR = tk.StringVar(value="HEVC")
         self.SRC_DIR_VAR = tk.StringVar()
         self.PARENT_DST_DIR_VAR = tk.StringVar()
+        self.OUTPUT_FOLDER_NAME_VAR = tk.StringVar()
 
         self.GPU_BRAND = _default_brand
         self.CODEC_MODE = "HEVC"
@@ -362,7 +363,11 @@ class BatchVideoTranscoderApp:
 
         input_folder_name = os.path.basename(self.SRC_DIR.rstrip(os.sep))
         date_str = time.strftime("%d%m%Y")
-        self.FINAL_DST_DIR = os.path.join(self.PARENT_DST_DIR, f"{input_folder_name}_{self.CODEC_MODE.lower()}_{date_str}")
+        custom_folder_name = self.OUTPUT_FOLDER_NAME_VAR.get().strip()
+        if custom_folder_name:
+            self.FINAL_DST_DIR = os.path.join(self.PARENT_DST_DIR, custom_folder_name)
+        else:
+            self.FINAL_DST_DIR = os.path.join(self.PARENT_DST_DIR, f"{input_folder_name}_{self.CODEC_MODE.lower()}_{date_str}")
 
         try:
             os.makedirs(self.FINAL_DST_DIR, exist_ok=True)
@@ -687,6 +692,10 @@ class BatchVideoTranscoderApp:
         self.btn_dst = ttk.Button(pnl_paths, text="Browse", command=self.browse_dst_dir)
         self.btn_dst.grid(row=1, column=2, sticky=tk.E, pady=2)
 
+        ttk.Label(pnl_paths, text="Output Folder Name (optional):").grid(row=2, column=0, sticky=tk.W, pady=2)
+        self.ent_output_name = ttk.Entry(pnl_paths, textvariable=self.OUTPUT_FOLDER_NAME_VAR, width=65)
+        self.ent_output_name.grid(row=2, column=1, sticky=tk.EW, padx=5, pady=2)
+
         pnl_paths.columnconfigure(1, weight=1)
 
         pnl_hw = ttk.LabelFrame(main_frame, text="Hardware Platform Configuration", padding="10")
@@ -825,6 +834,7 @@ class BatchVideoTranscoderApp:
 
     def toggle_inputs_state(self, enabled: bool):
         state = "normal" if enabled else "disabled"
+        self.ent_output_name.config(state=state)
         self.btn_src.config(state=state)
         self.btn_dst.config(state=state)
         self.btn_scan.config(state=state)
